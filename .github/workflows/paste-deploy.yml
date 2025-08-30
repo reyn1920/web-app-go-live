@@ -1,0 +1,364 @@
+name: Paste Application CI/CD Pipeline
+
+# Trigger Configuration
+on:
+  # Manual deployment trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version tag (optional)'
+        required: false
+        type: string
+
+  # Automated triggers
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'paste_app.py'
+      - 'requirements.paste.txt'
+      - 'Dockerfile.paste'
+      - '.env.paste.*'
+      - '.github/workflows/paste-deploy.yml'
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'paste_app.py'
+      - 'requirements.paste.txt'
+      - 'Dockerfile.paste'
+      - '.env.paste.*'
+
+# Environment Variables
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+  PASTE_APP_NAME: 'paste-application'
+
+# Jobs
+jobs:
+  # ========================================
+  # CODE QUALITY AND SECURITY
+  # ========================================
+  code-quality:
+    name: Code Quality & Security Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.paste.txt
+          pip install flake8 black isort bandit safety
+
+      - name: Code Formatting Check (Black)
+        run: |
+          black --check --diff paste_app.py
+
+      - name: Import Sorting Check (isort)
+        run: |
+          isort --check-only --diff paste_app.py
+
+      - name: Linting (Flake8)
+        run: |
+          flake8 paste_app.py --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 paste_app.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Security Scan (Bandit)
+        run: |
+          bandit -r paste_app.py -f json -o bandit-report.json || true
+          bandit -r paste_app.py
+
+      - name: Dependency Security Check (Safety)
+        run: |
+          safety check --json --output safety-report.json || true
+          safety check
+
+      - name: Secret Scanning (GitLeaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+          retention-days: 30
+
+  # ========================================
+  # AUTOMATED TESTING
+  # ========================================
+  automated-testing:
+    name: Automated Testing Suite
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.paste.txt
+          pip install pytest pytest-cov pytest-flask
+
+      - name: Create Test Environment
+        run: |
+          cp .env.paste.example .env.paste.test
+          echo "TESTING=true" >> .env.paste.test
+          echo "DATABASE_URL=sqlite:///:memory:" >> .env.paste.test
+
+      - name: Run Unit Tests
+        run: |
+          pytest tests/ -v --cov=paste_app --cov-report=xml --cov-report=html
+        env:
+          FLASK_ENV: testing
+
+      - name: Upload Coverage Reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: paste-app-coverage
+
+  # ========================================
+  # STAGING DEPLOYMENT
+  # ========================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [code-quality, automated-testing]
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging') ||
+      github.event_name == 'pull_request'
+    
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.deploy-url }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.paste.txt
+
+      - name: Build Application
+        run: |
+          mkdir -p dist
+          cp paste_app.py dist/
+          cp requirements.paste.txt dist/requirements.txt
+          cp Dockerfile.paste dist/Dockerfile
+          cp .env.paste.production dist/.env
+          
+          # Create netlify.toml for staging
+          cat > dist/netlify.toml << 'EOF'
+          [build]
+            command = "echo 'Static build complete'"
+            publish = "."
+          
+          [build.environment]
+            PYTHON_VERSION = "3.11"
+          
+          [[headers]]
+            for = "/*"
+            [headers.values]
+              X-Frame-Options = "DENY"
+              X-Content-Type-Options = "nosniff"
+              X-XSS-Protection = "1; mode=block"
+              Referrer-Policy = "strict-origin-when-cross-origin"
+          EOF
+
+      - name: Deploy to Netlify (Staging)
+        id: deploy
+        uses: nwtgck/actions-netlify@v2.1
+        with:
+          publish-dir: './dist'
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Staging deployment - ${{ github.sha }}"
+          enable-pull-request-comment: true
+          enable-commit-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_PASTE_STAGING_SITE_ID }}
+
+  # ========================================
+  # PRODUCTION DEPLOYMENT
+  # ========================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [code-quality, automated-testing]
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deploy-url }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.paste.txt
+
+      - name: Build Application
+        run: |
+          mkdir -p dist
+          cp paste_app.py dist/
+          cp requirements.paste.txt dist/requirements.txt
+          cp Dockerfile.paste dist/Dockerfile
+          cp .env.paste.production dist/.env
+          
+          # Create production netlify.toml
+          cat > dist/netlify.toml << 'EOF'
+          [build]
+            command = "echo 'Production build complete'"
+            publish = "."
+          
+          [build.environment]
+            PYTHON_VERSION = "3.11"
+            ENVIRONMENT = "production"
+          
+          [[headers]]
+            for = "/*"
+            [headers.values]
+              X-Frame-Options = "DENY"
+              X-Content-Type-Options = "nosniff"
+              X-XSS-Protection = "1; mode=block"
+              Referrer-Policy = "strict-origin-when-cross-origin"
+              Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+              Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'"
+          
+          [[redirects]]
+            from = "/*"
+            to = "/index.html"
+            status = 200
+          EOF
+
+      - name: Production Optimization
+        run: |
+          # Remove development files
+          find dist -name "*.pyc" -delete
+          find dist -name "__pycache__" -type d -exec rm -rf {} + || true
+          
+          # Create production manifest
+          echo "Build Date: $(date)" > dist/BUILD_INFO
+          echo "Commit: ${{ github.sha }}" >> dist/BUILD_INFO
+          echo "Environment: production" >> dist/BUILD_INFO
+
+      - name: Deploy to Netlify (Production)
+        id: deploy
+        uses: nwtgck/actions-netlify@v2.1
+        with:
+          publish-dir: './dist'
+          production-deploy: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Production deployment - ${{ github.sha }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_PASTE_PRODUCTION_SITE_ID }}
+
+      - name: Create Release Tag
+        if: github.event.inputs.version != ''
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "v${{ github.event.inputs.version }}" -m "Release version ${{ github.event.inputs.version }}"
+          git push origin "v${{ github.event.inputs.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ========================================
+  # POST-DEPLOYMENT VERIFICATION
+  # ========================================
+  post-deployment-verification:
+    name: Post-Deployment Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    
+    steps:
+      - name: Health Check
+        run: |
+          if [ "${{ needs.deploy-production.result }}" == "success" ]; then
+            DEPLOY_URL="${{ needs.deploy-production.outputs.deploy-url }}"
+            ENV="production"
+          else
+            DEPLOY_URL="${{ needs.deploy-staging.outputs.deploy-url }}"
+            ENV="staging"
+          fi
+          
+          echo "Checking health of $ENV deployment at $DEPLOY_URL"
+          
+          # Wait for deployment to be ready
+          sleep 30
+          
+          # Perform health check
+          curl -f "$DEPLOY_URL/health" || exit 1
+          
+          echo "✅ Health check passed for $ENV deployment"
+
+      - name: Notify Success
+        if: success()
+        run: |
+          echo "🚀 Paste application deployment completed successfully!"
+
+      - name: Notify Failure
+        if: failure()
+        run: |
+          echo "❌ Paste application deployment failed. Check logs for details."
+          exit 1

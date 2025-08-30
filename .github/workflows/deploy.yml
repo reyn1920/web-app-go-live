@@ -1,0 +1,330 @@
+name: Production Deployment Pipeline
+
+# Trigger Configuration - Following Go-Live Rule 4.3.1
+on:
+  # Manual deployment trigger for production control
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target Environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version Tag (optional)'
+        required: false
+        type: string
+
+  # Automated CI triggers - Following Go-Live Rule 4.2.1
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # ========================================
+  # CONTINUOUS INTEGRATION PHASE
+  # ========================================
+  
+  code-quality:
+    name: Code Quality & Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort bandit safety
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    # Go-Live Rule 4.2.2: Code Quality Gates
+    - name: Run Linting (flake8)
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Check Code Formatting (Black)
+      run: black --check --diff .
+
+    - name: Check Import Sorting (isort)
+      run: isort --check-only --diff .
+
+    # Go-Live Rule 4.2.3: Security Scanning
+    - name: Security Scan (Bandit)
+      run: bandit -r . -f json -o bandit-report.json || true
+
+    - name: Dependency Security Check
+      run: safety check --json --output safety-report.json || true
+
+    - name: Secret Scanning (GitLeaks)
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Security Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  automated-testing:
+    name: Automated Test Suite
+    runs-on: ubuntu-latest
+    needs: code-quality
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov pytest-mock
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    # Go-Live Rule 4.2.4: Automated Testing Suite
+    - name: Run Unit Tests
+      run: |
+        pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
+      continue-on-error: false
+
+    - name: Upload Coverage Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-reports
+        path: |
+          coverage.xml
+          htmlcov/
+
+  # ========================================
+  # CONTINUOUS DEPLOYMENT PHASE
+  # ========================================
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [code-quality, automated-testing]
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop')
+    
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.url }}
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Pre-deployment Validation
+      run: |
+        python deployment_validator.py --environment=staging --check-security --check-performance
+        
+    - name: Build Application
+      run: |
+        # Run enhanced build process
+        python build_for_netlify.py --environment=staging --optimize --security-scan
+        
+        # Verify build integrity
+        if [ ! -d "dist" ]; then
+          echo "Build failed: dist directory not found"
+          exit 1
+        fi
+      env:
+        SYSTEM_MODE: staging
+        DEBUG_MODE: false
+        VITE_API_URL: ${{ secrets.STAGING_API_URL }}
+        VITE_APP_ENV: staging
+
+    # Go-Live Rule 4.3.3: Deploy to Netlify
+    - name: Deploy to Netlify (Staging)
+      id: deploy
+      uses: nwtgck/actions-netlify@v2.0
+      with:
+        publish-dir: './dist'
+        production-branch: main
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: 'Staging Deploy - ${{ github.sha }}'
+        enable-pull-request-comment: true
+        enable-commit-comment: true
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_STAGING_SITE_ID }}
+        
+    - name: Wait for Deployment
+      run: sleep 30
+      
+    - name: Run Staging Health Checks
+      run: |
+        # Basic health check
+        curl -f ${{ steps.deploy.outputs.url }}/health || exit 1
+        
+        # Security headers check
+        curl -I ${{ steps.deploy.outputs.url }} | grep -i "x-frame-options" || echo "Warning: Security headers missing"
+        
+        # API endpoint check
+        curl -f ${{ steps.deploy.outputs.url }}/api/stats || echo "Warning: API endpoint not responding"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [code-quality, automated-testing]
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Pre-deployment Validation
+      run: |
+        python deployment_validator.py --environment=production --check-security --check-performance --strict
+        
+    - name: Build Application
+      run: |
+        # Run enhanced production build process
+        python build_for_netlify.py --environment=production --optimize --security-scan --minify
+        
+        # Verify build integrity and security
+        if [ ! -d "dist" ]; then
+          echo "Build failed: dist directory not found"
+          exit 1
+        fi
+        
+        # Final security validation
+        python -c "import security_middleware; print('Security middleware validated')"
+      env:
+        SYSTEM_MODE: production
+        DEBUG_MODE: false
+        VITE_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+        VITE_APP_ENV: production
+
+    # Go-Live Rule 4.3.1: Controlled Production Deployment
+    - name: Deploy to Netlify (Production)
+      id: deploy
+      uses: nwtgck/actions-netlify@v2.0
+      with:
+        publish-dir: './dist'
+        production-deploy: true
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: 'Production Deploy - ${{ github.event.inputs.version || github.sha }}'
+        enable-pull-request-comment: false
+        enable-commit-comment: true
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_PRODUCTION_SITE_ID }}
+        
+    - name: Wait for Production Deployment
+      run: sleep 60
+      
+    - name: Run Production Health Checks
+      run: |
+        # Critical health check
+        curl -f ${{ steps.deploy.outputs.url }}/health || exit 1
+        
+        # Security validation
+        curl -I ${{ steps.deploy.outputs.url }} | grep -i "strict-transport-security" || exit 1
+        curl -I ${{ steps.deploy.outputs.url }} | grep -i "x-frame-options" || exit 1
+        
+        # API functionality check
+        curl -f ${{ steps.deploy.outputs.url }}/api/stats || exit 1
+        
+        # Performance baseline
+        curl -w "@curl-format.txt" -o /dev/null -s ${{ steps.deploy.outputs.url }} || true
+        
+    - name: Create Performance Report
+      run: |
+        echo "response_time:%{time_total}" > curl-format.txt
+        echo "size_download:%{size_download}" >> curl-format.txt
+
+    - name: Create Release Tag
+      if: github.event.inputs.version
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "${{ github.event.inputs.version }}" -m "Production Release ${{ github.event.inputs.version }}"
+        git push origin "${{ github.event.inputs.version }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ========================================
+  # POST-DEPLOYMENT VERIFICATION
+  # ========================================
+
+  post-deploy-verification:
+    name: Post-Deployment Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    
+    steps:
+    - name: Health Check
+      run: |
+        echo "Deployment completed successfully"
+        echo "Environment: ${{ github.event.inputs.environment || 'auto' }}"
+        echo "Version: ${{ github.event.inputs.version || github.sha }}"
+        
+    - name: Notify Success
+      if: success()
+      run: |
+        echo "✅ Deployment pipeline completed successfully"
+        echo "🚀 Application is live and ready for use"
+        
+    - name: Notify Failure
+      if: failure()
+      run: |
+        echo "❌ Deployment pipeline failed"
+        echo "🔧 Please check the logs and fix issues before retrying"
+        exit 1

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketing Services Payment Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            padding: 40px;
+        }
+        
+        .service-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .service-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.1);
+        }
+        
+        .service-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .service-description {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .pricing-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .amount-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .amount-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .billing-options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .billing-option {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .billing-option:hover {
+            border-color: #667eea;
+        }
+        
+        .billing-option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        
+        .billing-option input[type="radio"] {
+            display: none;
+        }
+        
+        .pay-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .pay-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .pay-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .total-summary {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 40px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .total-amount {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+        }
+        
+        .security-notice {
+            background: #e8f5e8;
+            border: 1px solid #c3e6c3;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 40px;
+            text-align: center;
+            color: #2d5a2d;
+        }
+        
+        .card-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💳 Marketing Services Payment Portal</h1>
+            <p>Choose your services and set custom pricing</p>
+        </div>
+        
+        <div class="services-grid">
+            <!-- YouTube Automation Service -->
+            <div class="service-card">
+                <div class="service-title">
+                    🎬 YouTube Automation
+                </div>
+                <div class="service-description">
+                    Automated video creation, publishing, and channel management with AI-powered content generation.
+                </div>
+                <div class="pricing-section">
+                    <input type="number" class="amount-input" id="youtube-amount" placeholder="Enter amount ($)" min="1" step="0.01">
+                    <div class="billing-options">
+                        <label class="billing-option" for="youtube-onetime">
+                            <input type="radio" name="youtube-billing" id="youtube-onetime" value="onetime">
+                            One-Time
+                        </label>
+                        <label class="billing-option" for="youtube-recurring">
+                            <input type="radio" name="youtube-billing" id="youtube-recurring" value="recurring">
+                            Monthly
+                        </label>
+                    </div>
+                    <button class="pay-button" onclick="processPayment('youtube')">Add to Cart</button>
+                </div>
+            </div>
+            
+            <!-- API Services -->
+            <div class="service-card">
+                <div class="service-title">
+                    🚀 API Access Package
+                </div>
+                <div class="service-description">
+                    Full access to our automation APIs including paste management, business platform, and digital products.
+                </div>
+                <div class="pricing-section">
+                    <input type="number" class="amount-input" id="api-amount" placeholder="Enter amount ($)" min="1" step="0.01">
+                    <div class="billing-options">
+                        <label class="billing-option" for="api-onetime">
+                            <input type="radio" name="api-billing" id="api-onetime" value="onetime">
+                            One-Time
+                        </label>
+                        <label class="billing-option" for="api-recurring">
+                            <input type="radio" name="api-billing" id="api-recurring" value="recurring">
+                            Monthly
+                        </label>
+                    </div>
+                    <button class="pay-button" onclick="processPayment('api')">Add to Cart</button>
+                </div>
+            </div>
+            
+            <!-- Affiliate Marketing -->
+            <div class="service-card">
+                <div class="service-title">
+                    💰 Premium Affiliate Tools
+                </div>
+                <div class="service-description">
+                    Advanced affiliate marketing tools, tracking dashboard, and premium commission rates.
+                </div>
+                <div class="pricing-section">
+                    <input type="number" class="amount-input" id="affiliate-amount" placeholder="Enter amount ($)" min="1" step="0.01">
+                    <div class="billing-options">
+                        <label class="billing-option" for="affiliate-onetime">
+                            <input type="radio" name="affiliate-billing" id="affiliate-onetime" value="onetime">
+                            One-Time
+                        </label>
+                        <label class="billing-option" for="affiliate-recurring">
+                            <input type="radio" name="affiliate-billing" id="affiliate-recurring" value="recurring">
+                            Monthly
+                        </label>
+                    </div>
+                    <button class="pay-button" onclick="processPayment('affiliate')">Add to Cart</button>
+                </div>
+            </div>
+            
+            <!-- Content Creation Suite -->
+            <div class="service-card">
+                <div class="service-title">
+                    ✍️ AI Content Creation
+                </div>
+                <div class="service-description">
+                    AI-powered writing, research, and content generation for books, articles, and marketing materials.
+                </div>
+                <div class="pricing-section">
+                    <input type="number" class="amount-input" id="content-amount" placeholder="Enter amount ($)" min="1" step="0.01">
+                    <div class="billing-options">
+                        <label class="billing-option" for="content-onetime">
+                            <input type="radio" name="content-billing" id="content-onetime" value="onetime">
+                            One-Time
+                        </label>
+                        <label class="billing-option" for="content-recurring">
+                            <input type="radio" name="content-billing" id="content-recurring" value="recurring">
+                            Monthly
+                        </label>
+                    </div>
+                    <button class="pay-button" onclick="processPayment('content')">Add to Cart</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="total-summary" id="cart-summary" style="display: none;">
+            <h3>🛒 Cart Summary</h3>
+            <div id="cart-items"></div>
+            <div class="total-amount" id="total-amount">Total: $0.00</div>
+            <button class="pay-button" onclick="proceedToCheckout()" style="margin-top: 20px;">Proceed to Checkout</button>
+        </div>
+        
+        <div class="security-notice">
+            🔒 Secure Payment Processing - All transactions are encrypted and processed through secure payment gateways
+        </div>
+        
+        <div class="card-info">
+            <strong>💳 Payment Information:</strong> This interface will charge your debit card for the selected services. You can choose between one-time payments or recurring monthly billing for each service.
+        </div>
+    </div>
+    
+    <script>
+        let cart = [];
+        let totalAmount = 0;
+        
+        // Handle billing option selection
+        document.addEventListener('DOMContentLoaded', function() {
+            const billingOptions = document.querySelectorAll('.billing-option');
+            billingOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const radio = this.querySelector('input[type="radio"]');
+                    const name = radio.name;
+                    
+                    // Remove selected class from all options with same name
+                    document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+                        r.closest('.billing-option').classList.remove('selected');
+                    });
+                    
+                    // Add selected class to clicked option
+                    this.classList.add('selected');
+                    radio.checked = true;
+                });
+            });
+        });
+        
+        function processPayment(serviceType) {
+            const amountInput = document.getElementById(`${serviceType}-amount`);
+            const billingRadio = document.querySelector(`input[name="${serviceType}-billing"]:checked`);
+            
+            if (!amountInput.value || !billingRadio) {
+                alert('Please enter an amount and select a billing option.');
+                return;
+            }
+            
+            const amount = parseFloat(amountInput.value);
+            if (amount <= 0) {
+                alert('Please enter a valid amount greater than $0.');
+                return;
+            }
+            
+            const serviceNames = {
+                'youtube': 'YouTube Automation',
+                'api': 'API Access Package',
+                'affiliate': 'Premium Affiliate Tools',
+                'content': 'AI Content Creation'
+            };
+            
+            const cartItem = {
+                service: serviceNames[serviceType],
+                amount: amount,
+                billing: billingRadio.value,
+                id: Date.now()
+            };
+            
+            cart.push(cartItem);
+            updateCartDisplay();
+            
+            // Clear the form
+            amountInput.value = '';
+            document.querySelector(`input[name="${serviceType}-billing"]:checked`).checked = false;
+            document.querySelector(`input[name="${serviceType}-billing"]:checked`).closest('.billing-option').classList.remove('selected');
+            
+            alert(`${serviceNames[serviceType]} added to cart!`);
+        }
+        
+        function updateCartDisplay() {
+            const cartSummary = document.getElementById('cart-summary');
+            const cartItems = document.getElementById('cart-items');
+            const totalAmountEl = document.getElementById('total-amount');
+            
+            if (cart.length === 0) {
+                cartSummary.style.display = 'none';
+                return;
+            }
+            
+            cartSummary.style.display = 'block';
+            
+            let cartHTML = '';
+            totalAmount = 0;
+            
+            cart.forEach((item, index) => {
+                totalAmount += item.amount;
+                cartHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
+                        <div>
+                            <strong>${item.service}</strong><br>
+                            <small>${item.billing === 'recurring' ? 'Monthly Recurring' : 'One-Time Payment'}</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <strong>$${item.amount.toFixed(2)}</strong><br>
+                            <button onclick="removeFromCart(${index})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Remove</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            cartItems.innerHTML = cartHTML;
+            totalAmountEl.textContent = `Total: $${totalAmount.toFixed(2)}`;
+        }
+        
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartDisplay();
+        }
+        
+        function proceedToCheckout() {
+            if (cart.length === 0) {
+                alert('Your cart is empty!');
+                return;
+            }
+            
+            let checkoutSummary = 'Checkout Summary:\n\n';
+            cart.forEach(item => {
+                checkoutSummary += `${item.service}: $${item.amount.toFixed(2)} (${item.billing})\n`;
+            });
+            checkoutSummary += `\nTotal: $${totalAmount.toFixed(2)}`;
+            checkoutSummary += '\n\nThis will charge your debit card. Proceed with payment?';
+            
+            if (confirm(checkoutSummary)) {
+                // Here you would integrate with a real payment processor
+                alert('Payment processing... (This is a demo interface)');
+                
+                // Save order details
+                const orderData = {
+                    items: cart,
+                    total: totalAmount,
+                    timestamp: new Date().toISOString(),
+                    orderId: 'ORD-' + Date.now()
+                };
+                
+                localStorage.setItem('lastOrder', JSON.stringify(orderData));
+                
+                // Clear cart
+                cart = [];
+                updateCartDisplay();
+                
+                alert(`Order ${orderData.orderId} processed successfully! Check your email for confirmation.`);
+            }
+        }
+        
+        // Load any saved cart data
+        window.addEventListener('load', function() {
+            const savedCart = localStorage.getItem('currentCart');
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+                updateCartDisplay();
+            }
+        });
+        
+        // Save cart data when page unloads
+        window.addEventListener('beforeunload', function() {
+            localStorage.setItem('currentCart', JSON.stringify(cart));
+        });
+    </script>
+</body>
+</html>

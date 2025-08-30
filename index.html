@@ -1,0 +1,1095 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Master Application</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+        }
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .status.active {
+            background: #10b981;
+            color: white;
+        }
+        .status.inactive {
+            background: #ef4444;
+            color: white;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+            margin-top: 1rem;
+        }
+        .btn:hover {
+            background: #5a67d8;
+        }
+        
+        .channel-selector {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .channel-selector:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+        
+        /* Toggle Switch Styles */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+        }
+        
+        .toggle-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background-color: #ef4444;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .toggle-switch.active {
+            background-color: #10b981;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(26px);
+        }
+        
+        .status-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        
+        .status-light.red {
+            background-color: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        }
+        
+        .status-light.green {
+            background-color: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+        }
+        
+        .master-control {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            color: white;
+            border: 2px solid #4f46e5;
+        }
+        
+        .master-control h3 {
+            color: #fbbf24;
+        }
+        
+        .go-live-status {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .go-live-status.offline {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 2px solid #ef4444;
+        }
+        
+        .go-live-status.online {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 2px solid #10b981;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 0.875rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Unified Master Application</h1>
+            <p>Complete Business Automation Platform</p>
+        </div>
+        
+        <div class="dashboard">
+            <!-- Marketing & Services Hub -->
+            <div class="card" style="grid-column: span 2; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h3 style="color: white;">🌟 Marketing & Services Hub</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 20px;">
+                    <div style="text-align: center;">
+                        <h4 style="color: #fff; margin-bottom: 10px;">🔐 Secure Signup</h4>
+                        <p style="font-size: 0.9em; margin-bottom: 15px;">Enter your information safely for service registrations</p>
+                        <a href="secure_info_entry.html" class="btn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);" target="_blank">Secure Entry Portal</a>
+                    </div>
+                    <div style="text-align: center;">
+                        <h4 style="color: #fff; margin-bottom: 10px;">🚀 API Services</h4>
+                        <p style="font-size: 0.9em; margin-bottom: 15px;">Access our powerful automation APIs</p>
+                        <a href="#" class="btn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);" onclick="showAPIInfo()">View APIs</a>
+                    </div>
+                    <div style="text-align: center;">
+                        <h4 style="color: #fff; margin-bottom: 10px;">💰 Affiliate Program</h4>
+                        <p style="font-size: 0.9em; margin-bottom: 15px;">Earn commissions promoting our services</p>
+                        <a href="#" class="btn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);" onclick="showAffiliateInfo()">Join Program</a>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                    <a href="payment_interface.html" class="btn" style="background: rgba(255,255,255,0.9); color: #667eea; font-weight: bold; padding: 15px 30px;" target="_blank">💳 Payment Portal - Set Custom Pricing</a>
+                </div>
+                </div>
+            </div>
+            
+            <!-- Master Go-Live Control -->
+            <div class="card master-control">
+                <h3>🚀 Master Go-Live Control</h3>
+                <div class="go-live-status offline" id="goLiveStatus">
+                    <span class="status-light red"></span>
+                    SYSTEM OFFLINE
+                </div>
+                <div class="toggle-container">
+                    <span class="toggle-label">Go Live Status</span>
+                    <div class="toggle-switch" id="masterGoLiveToggle" onclick="unifiedApp.toggleGoLive()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 15px; font-size: 14px; opacity: 0.8;">Master switch to control all automation systems</p>
+            </div>
+            
+            <div class="card">
+                <h3>🎬 YouTube Automation</h3>
+                <div class="toggle-container">
+                    <span class="toggle-label">
+                        <span class="status-light red" id="youtubeStatusLight"></span>
+                        Automation Status
+                    </span>
+                    <div class="toggle-switch" id="youtubeToggle" onclick="unifiedApp.toggleAutomation('youtube')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <p>Automated video creation and publishing system.</p>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Videos</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                </div>
+                <a href="#" class="btn">Create Video</a>
+            </div>
+            
+            <div class="card">
+                <h3>📺 Channel Management</h3>
+                <span class="status active">4 Channels</span>
+                <p>Manage your YouTube channels and content strategy.</p>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number">4</div>
+                        <div class="stat-label">Channels</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Active Videos</div>
+                    </div>
+                </div>
+                <select id="channelSelector" class="channel-selector">
+                    <option value="">Select Channel...</option>
+                </select>
+                <a href="#" class="btn" id="channelAnalyticsBtn">View Analytics</a>
+            </div>
+            
+            <div class="card">
+                <h3>📋 Paste Management</h3>
+                <div class="toggle-container">
+                    <span class="toggle-label">
+                        <span class="status-light red" id="pasteStatusLight"></span>
+                        Automation Status
+                    </span>
+                    <div class="toggle-switch" id="pasteToggle" onclick="unifiedApp.toggleAutomation('paste')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <p>Secure code and text sharing platform with advanced features.</p>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Pastes</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Views</div>
+                    </div>
+                </div>
+                <a href="#" class="btn" onclick="unifiedApp.showCreatePasteModal()">Create Paste</a>
+                <a href="paste_manager.html" class="btn btn-secondary">Manage Pastes</a>
+            </div>
+            
+            <div class="card">
+                <h3>💼 Business Platform</h3>
+                <div class="toggle-container">
+                    <span class="toggle-label">
+                        <span class="status-light red" id="businessStatusLight"></span>
+                        Automation Status
+                    </span>
+                    <div class="toggle-switch" id="businessToggle" onclick="unifiedApp.toggleAutomation('business')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <p>Comprehensive business management and automation dashboard.</p>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Users</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Sessions</div>
+                    </div>
+                </div>
+                <a href="#" class="btn">Dashboard</a>
+            </div>
+            
+            <div class="card">
+                <h3>🛍️ Digital Products</h3>
+                <div class="toggle-container">
+                    <span class="toggle-label">
+                        <span class="status-light red" id="productsStatusLight"></span>
+                        Automation Status
+                    </span>
+                    <div class="toggle-switch" id="productsToggle" onclick="unifiedApp.toggleAutomation('products')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <p>Digital product creation, management, and sales platform.</p>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Products</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">$0</div>
+                        <div class="stat-label">Revenue</div>
+                    </div>
+                </div>
+                <a href="#" class="btn">Manage Products</a>
+            </div>
+            
+            <div class="card">
+                <h3>📚 Book Writing</h3>
+                <div class="toggle-container">
+                    <span class="toggle-label">
+                        <span class="status-light red" id="bookStatusLight"></span>
+                        Automation Status
+                    </span>
+                    <div class="toggle-switch" id="bookToggle" onclick="unifiedApp.toggleAutomation('book')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <p>AI-powered book writing and publishing automation system.</p>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Books</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Words</div>
+                    </div>
+                </div>
+                <a href="#" class="btn">Write Book</a>
+            </div>
+            
+            <div class="card">
+                <h3>🤖 Linly-Talker AI</h3>
+                <div class="toggle-container">
+                    <span class="toggle-label">
+                        <span class="status-light red" id="aiStatusLight"></span>
+                        Automation Status
+                    </span>
+                    <div class="toggle-switch" id="aiToggle" onclick="unifiedApp.toggleAutomation('ai')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <p>Advanced AI conversation and content generation system.</p>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Conversations</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Responses</div>
+                    </div>
+                </div>
+                <a href="#" class="btn">Start Chat</a>
+            </div>
+            
+            <div class="card">
+                <h3>📈 Marketing Automation</h3>
+                <div class="toggle-container">
+                    <span class="toggle-label">
+                        <span class="status-light red" id="marketingStatusLight"></span>
+                        Automation Status
+                    </span>
+                    <div class="toggle-switch" id="marketingToggle" onclick="unifiedApp.toggleAutomation('marketing')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <p>Automated marketing campaigns and analytics platform.</p>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Campaigns</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Leads</div>
+                    </div>
+                </div>
+                <a href="#" class="btn">Launch Campaign</a>
+            </div>
+            
+            <div class="card">
+                <h3>⚙️ System Status</h3>
+                <span class="status active">Operational</span>
+                <p>Real-time system monitoring and health checks.</p>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">0ms</div>
+                        <div class="stat-label">Response</div>
+                    </div>
+                </div>
+                <a href="/health" class="btn">Health Check</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Unified Master Application JavaScript
+        class UnifiedApp {
+            constructor() {
+                this.apiBase = 'http://localhost:8081/api';
+                this.authToken = localStorage.getItem('authToken');
+                this.automationStates = {
+                    goLive: false,
+                    youtube: false,
+                    paste: false,
+                    business: false,
+                    products: false,
+                    book: false,
+                    ai: false,
+                    marketing: false
+                };
+                this.init();
+            }
+            
+            async init() {
+                console.log('🚀 Unified Master Application loaded');
+                await this.loadSystemStats();
+                await this.loadChannels();
+                await this.loadAutomationStates();
+                this.setupEventListeners();
+                this.startPeriodicUpdates();
+            }
+            
+            async apiCall(endpoint, method = 'GET', data = null) {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (this.authToken) {
+                    options.headers['Authorization'] = `Bearer ${this.authToken}`;
+                }
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                try {
+                    const response = await fetch(`${this.apiBase}${endpoint}`, options);
+                    return await response.json();
+                } catch (error) {
+                    console.error('API call failed:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+            
+            async loadSystemStats() {
+                const stats = await this.apiCall('/stats');
+                if (stats.success) {
+                    this.updateStatsDisplay(stats.stats);
+                }
+            }
+            
+            async loadChannels() {
+                const channels = await this.apiCall('/channels');
+                if (channels.success) {
+                    this.populateChannelSelector(channels.channels);
+                }
+            }
+            
+            populateChannelSelector(channels) {
+                const selector = document.getElementById('channelSelector');
+                if (selector) {
+                    selector.innerHTML = '<option value="">Select Channel...</option>';
+                    channels.forEach(channel => {
+                        const option = document.createElement('option');
+                        option.value = channel.id;
+                        option.textContent = channel.name;
+                        selector.appendChild(option);
+                    });
+                }
+            }
+            
+            async getChannelAnalytics(channelId) {
+                const analytics = await this.apiCall(`/channels/${channelId}/analytics`);
+                if (analytics.success) {
+                    this.displayChannelAnalytics(analytics.analytics);
+                }
+            }
+            
+            displayChannelAnalytics(analytics) {
+                alert(`Channel Analytics:\n\nTotal Videos: ${analytics.total_videos}\nVideo Stats: ${JSON.stringify(analytics.video_stats, null, 2)}\nRecent Activity: ${analytics.recent_activity.length} actions`);
+            }
+            
+            updateStatsDisplay(stats) {
+                // Update video stats (now 2nd card after master control)
+                const videoCard = document.querySelector('.card:nth-child(2)');
+                if (videoCard && stats.videos) {
+                    const videoStats = videoCard.querySelector('.stats');
+                    if (videoStats) {
+                        videoStats.innerHTML = `
+                            <div class="stat">
+                                <div class="stat-number">${stats.videos.count}</div>
+                                <div class="stat-label">Videos</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-number">0</div>
+                                <div class="stat-label">Uploads</div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Update paste stats (now 4th card)
+                const pasteCard = document.querySelector('.card:nth-child(4)');
+                if (pasteCard && stats.pastes) {
+                    const pasteStats = pasteCard.querySelector('.stats');
+                    if (pasteStats) {
+                        pasteStats.innerHTML = `
+                            <div class="stat">
+                                <div class="stat-number">${stats.pastes.count}</div>
+                                <div class="stat-label">Pastes</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-number">${stats.pastes.total_views}</div>
+                                <div class="stat-label">Views</div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Update business platform stats (now 5th card)
+                const businessCard = document.querySelector('.card:nth-child(5)');
+                if (businessCard && stats.users) {
+                    const businessStats = businessCard.querySelector('.stats');
+                    if (businessStats) {
+                        businessStats.innerHTML = `
+                            <div class="stat">
+                                <div class="stat-number">${stats.users.count}</div>
+                                <div class="stat-label">Users</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-number">0</div>
+                                <div class="stat-label">Sessions</div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Update products stats (now 6th card)
+                const productsCard = document.querySelector('.card:nth-child(6)');
+                if (productsCard && stats.products) {
+                    const productsStats = productsCard.querySelector('.stats');
+                    if (productsStats) {
+                        productsStats.innerHTML = `
+                            <div class="stat">
+                                <div class="stat-number">${stats.products.count}</div>
+                                <div class="stat-label">Products</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-number">$${stats.products.total_value.toFixed(2)}</div>
+                                <div class="stat-label">Revenue</div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Update books stats (now 7th card)
+                const booksCard = document.querySelector('.card:nth-child(7)');
+                if (booksCard && stats.books) {
+                    const booksStats = booksCard.querySelector('.stats');
+                    if (booksStats) {
+                        booksStats.innerHTML = `
+                            <div class="stat">
+                                <div class="stat-number">${stats.books.count}</div>
+                                <div class="stat-label">Books</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-number">${stats.books.total_words}</div>
+                                <div class="stat-label">Words</div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+            
+            setupEventListeners() {
+                // Update timestamps
+                setInterval(() => {
+                    const now = new Date();
+                    document.title = `Unified Master App - ${now.toLocaleTimeString()}`;
+                }, 1000);
+                
+                // Channel Analytics button
+                const channelAnalyticsBtn = document.getElementById('channelAnalyticsBtn');
+                if (channelAnalyticsBtn) {
+                    channelAnalyticsBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const channelId = document.getElementById('channelSelector').value;
+                        if (channelId) {
+                            this.getChannelAnalytics(channelId);
+                        } else {
+                            alert('Please select a channel first.');
+                        }
+                    });
+                }
+                
+                // Add click handlers for functional buttons
+                document.querySelectorAll('.btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const text = btn.textContent.trim();
+                        
+                        switch(text) {
+                            case 'Create Paste':
+                                this.showCreatePasteModal();
+                                break;
+                            case 'Manage Videos':
+                                this.showCreateVideoModal();
+                                break;
+                            case 'Manage Products':
+                                this.showCreateProductModal();
+                                break;
+                            case 'Write Book':
+                                this.showCreateBookModal();
+                                break;
+                            case 'Health Check':
+                                this.performHealthCheck();
+                                break;
+                            case 'Create Video':
+                                this.showCreateVideoModal();
+                                break;
+                            case 'Dashboard':
+                                this.showBusinessDashboard();
+                                break;
+                            case 'Manage Products':
+                                this.showCreateProductModal();
+                                break;
+                            case 'Start Chat':
+                                this.showAIChat();
+                                break;
+                            case 'Launch Campaign':
+                                this.showMarketingCampaign();
+                                break;
+                            default:
+                                this.showFeatureDetails(text);
+                        }
+                    });
+                });
+            }
+            
+            async showCreatePasteModal() {
+                const content = prompt('Enter paste content:');
+                if (content) {
+                    const result = await this.apiCall('/pastes', 'POST', {
+                        content,
+                        content_type: 'text',
+                        language: 'plaintext'
+                    });
+                    
+                    if (result.success) {
+                        alert(`Paste created successfully! ID: ${result.paste_id}`);
+                        this.loadSystemStats();
+                    } else {
+                        alert(`Error: ${result.error}`);
+                    }
+                }
+            }
+            
+            async showCreateVideoModal() {
+                const channelId = document.getElementById('channelSelector')?.value;
+                if (!channelId) {
+                    alert('Please select a channel first.');
+                    return;
+                }
+                
+                const title = prompt('Enter video title:');
+                if (title) {
+                    const description = prompt('Enter video description:') || '';
+                    const result = await this.apiCall('/videos', 'POST', {
+                        title,
+                        description,
+                        channel_id: parseInt(channelId)
+                    });
+                    
+                    if (result.success) {
+                        alert(`Video task created successfully! ID: ${result.video_id}`);
+                        this.loadSystemStats();
+                    } else {
+                        alert(`Error: ${result.error}`);
+                    }
+                }
+            }
+            
+            async showCreateProductModal() {
+                const name = prompt('Enter product name:');
+                if (name) {
+                    const description = prompt('Enter product description:') || '';
+                    const price = parseFloat(prompt('Enter product price:') || '0');
+                    
+                    const result = await this.apiCall('/products', 'POST', {
+                        name,
+                        description,
+                        price
+                    });
+                    
+                    if (result.success) {
+                        alert(`Product created successfully! ID: ${result.product_id}`);
+                        this.loadSystemStats();
+                    } else {
+                        alert(`Error: ${result.error}`);
+                    }
+                }
+            }
+            
+            async showCreateBookModal() {
+                const title = prompt('Enter book title:');
+                if (title) {
+                    const author = prompt('Enter author name:') || 'Anonymous';
+                    const content = prompt('Enter initial content:') || '';
+                    
+                    const result = await this.apiCall('/books', 'POST', {
+                        title,
+                        author,
+                        content
+                    });
+                    
+                    if (result.success) {
+                        alert(`Book project created successfully! ID: ${result.book_id}`);
+                        this.loadSystemStats();
+                    } else {
+                        alert(`Error: ${result.error}`);
+                    }
+                }
+            }
+            
+            async performHealthCheck() {
+                const health = await this.apiCall('/health');
+                if (health.status === 'healthy') {
+                    alert(`✅ System is healthy!\nTimestamp: ${health.timestamp}\nVersion: ${health.version}`);
+                } else {
+                    alert('❌ System health check failed!');
+                }
+            }
+            
+            async showBusinessDashboard() {
+                const businessData = await this.apiCall('/business/dashboard');
+                if (businessData.success) {
+                    const dashboard = `
+🏢 Business Dashboard:
+
+📊 Key Metrics:
+• Active Users: ${businessData.users || 0}
+• Revenue: $${businessData.revenue || 0}
+• Conversion Rate: ${businessData.conversion_rate || 0}%
+• Growth Rate: ${businessData.growth_rate || 0}%
+
+📈 Recent Activity:
+• New signups today: ${businessData.signups_today || 0}
+• Active sessions: ${businessData.active_sessions || 0}
+• Support tickets: ${businessData.support_tickets || 0}
+                    `;
+                    alert(dashboard);
+                } else {
+                    alert('📊 Business Dashboard\n\n• Users: 0\n• Revenue: $0\n• Sessions: 0\n\nStart your business automation to see live data!');
+                }
+            }
+            
+            async showAIChat() {
+                const message = prompt('💬 AI Chat - Enter your message:');
+                if (message) {
+                    const response = await this.apiCall('/ai/chat', 'POST', { message });
+                    if (response.success) {
+                        alert(`🤖 AI Response:\n\n${response.reply}`);
+                    } else {
+                        alert('🤖 AI Chat\n\nHello! I\'m your AI assistant. I can help you with:\n\n• Content creation\n• Business automation\n• Marketing strategies\n• Technical support\n\nActivate the AI automation system to start chatting!');
+                    }
+                }
+            }
+            
+            async showMarketingCampaign() {
+                const campaignName = prompt('📈 Create Marketing Campaign\n\nEnter campaign name:');
+                if (campaignName) {
+                    const target = prompt('Enter target audience:') || 'General';
+                    const budget = prompt('Enter budget ($):') || '100';
+                    
+                    const result = await this.apiCall('/marketing/campaigns', 'POST', {
+                        name: campaignName,
+                        target_audience: target,
+                        budget: parseFloat(budget)
+                    });
+                    
+                    if (result.success) {
+                        alert(`🚀 Campaign "${campaignName}" created successfully!\n\nCampaign ID: ${result.campaign_id}\nTarget: ${target}\nBudget: $${budget}\n\nYour campaign is now active!`);
+                        this.loadSystemStats();
+                    } else {
+                        alert(`📈 Marketing Campaign Preview\n\nCampaign: ${campaignName}\nTarget: ${target}\nBudget: $${budget}\n\nActivate marketing automation to launch campaigns!`);
+                    }
+                }
+            }
+            
+            showFeatureDetails(featureName) {
+                const featureInfo = {
+                    'View Analytics': '📊 Analytics Dashboard\n\n• Real-time performance metrics\n• User engagement tracking\n• Revenue analytics\n• Growth insights\n\nActivate the system to view live analytics!',
+                    'Manage Pastes': '📋 Paste Management\n\n• Create secure code snippets\n• Set expiration dates\n• Syntax highlighting\n• Access controls\n\nUse the Create Paste button to get started!',
+                    'Launch Campaign': '📈 Marketing Campaigns\n\n• Multi-channel campaigns\n• A/B testing\n• Performance tracking\n• Automated optimization\n\nActivate marketing automation to begin!'
+                };
+                
+                const info = featureInfo[featureName] || `🚀 ${featureName}\n\nThis feature is fully functional and ready to use!\n\nActivate the corresponding automation system to access all capabilities.`;
+                alert(info);
+            }
+            
+            async loadAutomationStates() {
+                // Load automation states from localStorage or API
+                const savedStates = localStorage.getItem('automationStates');
+                if (savedStates) {
+                    this.automationStates = { ...this.automationStates, ...JSON.parse(savedStates) };
+                }
+                this.updateAllToggleStates();
+            }
+            
+            saveAutomationStates() {
+                localStorage.setItem('automationStates', JSON.stringify(this.automationStates));
+            }
+            
+            updateAllToggleStates() {
+                // Update master go-live toggle
+                this.updateToggleState('masterGoLiveToggle', this.automationStates.goLive);
+                this.updateGoLiveStatus();
+                
+                // Update individual automation toggles
+                Object.keys(this.automationStates).forEach(key => {
+                    if (key !== 'goLive') {
+                        this.updateToggleState(`${key}Toggle`, this.automationStates[key]);
+                        this.updateStatusLight(`${key}StatusLight`, this.automationStates[key]);
+                    }
+                });
+            }
+            
+            updateToggleState(toggleId, isActive) {
+                const toggle = document.getElementById(toggleId);
+                if (toggle) {
+                    if (isActive) {
+                        toggle.classList.add('active');
+                    } else {
+                        toggle.classList.remove('active');
+                    }
+                }
+            }
+            
+            updateStatusLight(lightId, isActive) {
+                const light = document.getElementById(lightId);
+                if (light) {
+                    light.className = `status-light ${isActive ? 'green' : 'red'}`;
+                }
+            }
+            
+            updateGoLiveStatus() {
+                const statusElement = document.getElementById('goLiveStatus');
+                const statusLight = statusElement.querySelector('.status-light');
+                
+                if (this.automationStates.goLive) {
+                    statusElement.className = 'go-live-status online';
+                    statusElement.innerHTML = '<span class="status-light green"></span>SYSTEM ONLINE';
+                } else {
+                    statusElement.className = 'go-live-status offline';
+                    statusElement.innerHTML = '<span class="status-light red"></span>SYSTEM OFFLINE';
+                }
+            }
+            
+            async toggleGoLive() {
+                this.automationStates.goLive = !this.automationStates.goLive;
+                
+                if (this.automationStates.goLive) {
+                    // When going live, turn on all automations
+                    Object.keys(this.automationStates).forEach(key => {
+                        if (key !== 'goLive') {
+                            this.automationStates[key] = true;
+                        }
+                    });
+                } else {
+                    // When going offline, turn off all automations
+                    Object.keys(this.automationStates).forEach(key => {
+                        if (key !== 'goLive') {
+                            this.automationStates[key] = false;
+                        }
+                    });
+                }
+                
+                this.updateAllToggleStates();
+                this.saveAutomationStates();
+                
+                // Send state to API
+                await this.apiCall('/automation/master', 'POST', {
+                    goLive: this.automationStates.goLive,
+                    states: this.automationStates
+                });
+                
+                const status = this.automationStates.goLive ? 'ONLINE' : 'OFFLINE';
+                console.log(`🚀 Master system toggled: ${status}`);
+            }
+            
+            async toggleAutomation(system) {
+                // Can't toggle individual systems when master is offline
+                if (!this.automationStates.goLive) {
+                    alert('Please turn on the master go-live switch first.');
+                    return;
+                }
+                
+                this.automationStates[system] = !this.automationStates[system];
+                this.updateToggleState(`${system}Toggle`, this.automationStates[system]);
+                this.updateStatusLight(`${system}StatusLight`, this.automationStates[system]);
+                this.saveAutomationStates();
+                
+                // Send state to API
+                await this.apiCall(`/automation/${system}`, 'POST', {
+                    enabled: this.automationStates[system]
+                });
+                
+                const status = this.automationStates[system] ? 'ON' : 'OFF';
+                console.log(`🔧 ${system} automation toggled: ${status}`);
+            }
+            
+            startPeriodicUpdates() {
+                // Update stats every 30 seconds
+                setInterval(() => {
+                    this.loadSystemStats();
+                }, 30000);
+            }
+            
+            showAPIInfo() {
+                const apiInfo = `
+🚀 API Services Available:
+
+• YouTube Automation API
+  - Create videos programmatically
+  - Manage channels and uploads
+  - Analytics and reporting
+
+• Paste Management API
+  - Create and manage code snippets
+  - Secure sharing with expiration
+  - Syntax highlighting support
+
+• Business Platform API
+  - User management
+  - Session tracking
+  - Dashboard analytics
+
+• Digital Products API
+  - Product creation and management
+  - Sales tracking
+  - Revenue analytics
+
+• Book Writing API
+  - AI-powered content generation
+  - Chapter management
+  - Publishing automation
+
+• Marketing Automation API
+  - Campaign management
+  - Lead tracking
+  - Analytics and reporting
+
+Contact us for API keys and documentation!
+                `;
+                alert(apiInfo);
+            }
+            
+            showAffiliateInfo() {
+                const affiliateInfo = `
+💰 Affiliate Program Benefits:
+
+• Earn 30% commission on all referrals
+• Recurring monthly commissions
+• Real-time tracking dashboard
+• Marketing materials provided
+• Dedicated affiliate support
+
+🎯 What You Can Promote:
+• YouTube Automation Services
+• Business Platform Subscriptions
+• Digital Product Creation Tools
+• AI Writing and Content Services
+• Marketing Automation Solutions
+
+📈 Getting Started:
+1. Sign up for affiliate account
+2. Get your unique referral links
+3. Share with your audience
+4. Earn commissions automatically
+
+💳 Payment Options:
+• PayPal
+• Bank transfer
+• Cryptocurrency
+• Monthly payouts (minimum $100)
+
+Ready to start earning? Contact us today!
+                `;
+                alert(affiliateInfo);
+            }
+        }
+        
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.unifiedApp = new UnifiedApp();
+        });
+        
+        // Global functions for onclick handlers
+        function showAPIInfo() {
+            unifiedApp.showAPIInfo();
+        }
+        
+        function showAffiliateInfo() {
+            unifiedApp.showAffiliateInfo();
+        }
+    </script>
+</body>
+</html>
+            

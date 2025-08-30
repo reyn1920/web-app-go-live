@@ -1,0 +1,330 @@
+# Netlify Configuration for Unified Automation Platform
+# Following executive summary guidelines for production deployment
+
+[build]
+  # Build configuration
+  base = "."
+  publish = "dist"
+  command = "npm run build"
+  functions = "netlify/functions"
+  
+  # Environment variables for build process
+  environment = { NODE_VERSION = "18", PYTHON_VERSION = "3.11", NODE_ENV = "production" }
+
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+[build.processing.images]
+  compress = true
+
+# Security headers following executive summary requirements
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Security headers as per go-live rules
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    Cross-Origin-Embedder-Policy = "require-corp"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+
+# Production context (main branch)
+[context.production]
+  command = "npm run build"
+  environment = { NODE_ENV = "production" }
+
+# Deploy Preview context (pull requests)
+[context.deploy-preview]
+  command = "npm run build"
+  environment = { NODE_ENV = "staging" }
+
+# Branch deploy context (other branches)
+[context.branch-deploy]
+  command = "npm run build"
+  environment = { NODE_ENV = "development" }
+
+# SPA routing redirects
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Cache control for static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Development server configuration
+[dev]
+  command = "npm run dev"
+  port = 8080
+  publish = "dist"
+  autoLaunch = false
+    ENVIRONMENT = "production"
+    DEBUG = "false"
+    LOG_LEVEL = "INFO"
+    ENABLE_MONITORING = "true"
+    ENABLE_ANALYTICS = "true"
+
+# Staging context (deploy previews)
+[context.deploy-preview]
+  command = "ENVIRONMENT=staging python3 build_for_netlify.py"
+  
+  [context.deploy-preview.environment]
+    ENVIRONMENT = "staging"
+    DEBUG = "true"
+    LOG_LEVEL = "DEBUG"
+
+# Branch deploys
+[context.branch-deploy]
+  command = "ENVIRONMENT=development python3 build_for_netlify.py"
+  
+[context.branch-deploy.environment]
+  ENVIRONMENT = "development"
+  DEBUG = "true"
+  LOG_LEVEL = "DEBUG"
+
+# ========================================
+# SECURITY HEADERS - Go-Live Rule 5.1
+# ========================================
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    
+    # Content Security Policy
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.github.com https://api.openai.com;"
+    
+    # HSTS
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    
+    # Cache control
+    Cache-Control = "public, max-age=3600"
+
+
+
+# ========================================
+# API ROUTES AND REDIRECTS
+# ========================================
+
+# API routes
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/health"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/security/*"
+  to = "/.netlify/functions/security/:splat"
+  status = 200
+  force = true
+
+# SPA fallback for client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ========================================
+# ADDITIONAL SECURITY HEADERS
+# ========================================
+
+# API security headers
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
+    Access-Control-Max-Age = "86400"
+    X-RateLimit-Limit = "100"
+    X-RateLimit-Window = "3600"
+
+# Security endpoint headers
+[[headers]]
+  for = "/security/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+    X-Robots-Tag = "noindex, nofollow"
+
+# Health check endpoint
+[[headers]]
+  for = "/health"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Content-Type = "application/json"
+
+# Static asset caching
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# ========================================
+# ENVIRONMENT-SPECIFIC CONFIGURATIONS
+# ========================================
+
+# Production context
+[context.production]
+  command = "python -m pip install -r requirements.txt && python build.py --production"
+  
+  [context.production.environment]
+    SYSTEM_MODE = "production"
+    DEBUG_MODE = "false"
+    LOG_LEVEL = "INFO"
+    API_TIMEOUT = "30"
+    MAX_RETRIES = "3"
+    RATE_LIMIT_ENABLED = "true"
+    VIDEO_QUALITY = "1080p"
+    AUDIO_QUALITY = "high"
+    THUMBNAIL_QUALITY = "high"
+
+# Staging context
+[context.deploy-preview]
+  command = "python -m pip install -r requirements.txt && python build.py --staging"
+  
+  [context.deploy-preview.environment]
+    SYSTEM_MODE = "staging"
+    DEBUG_MODE = "true"
+    LOG_LEVEL = "DEBUG"
+    API_TIMEOUT = "60"
+    MAX_RETRIES = "5"
+    RATE_LIMIT_ENABLED = "false"
+    VIDEO_QUALITY = "720p"
+    AUDIO_QUALITY = "medium"
+    THUMBNAIL_QUALITY = "medium"
+
+# Branch-specific deployments
+[context.branch-deploy]
+  command = "python -m pip install -r requirements.txt && python build.py --development"
+  
+  [context.branch-deploy.environment]
+    SYSTEM_MODE = "development"
+    DEBUG_MODE = "true"
+    LOG_LEVEL = "DEBUG"
+
+# ========================================
+# FUNCTIONS CONFIGURATION
+# ========================================
+
+[functions]
+  # Function directory
+  directory = "netlify/functions"
+  
+  # Runtime settings
+  node_bundler = "esbuild"
+  
+  # External node modules (if using Node.js functions)
+  external_node_modules = ["sharp", "canvas"]
+
+# Individual function configurations
+[[functions]]
+  path = "api"
+  included_files = ["requirements.txt", "src/**"]
+  
+# ========================================
+# PLUGINS
+# ========================================
+
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+  
+  [plugins.inputs.audits]
+    performance = true
+    accessibility = true
+    best-practices = true
+    seo = true
+    pwa = false
+
+[[plugins]]
+  package = "netlify-plugin-submit-sitemap"
+  
+  [plugins.inputs]
+    baseUrl = "https://your-domain.netlify.app"
+    sitemapPath = "/sitemap.xml"
+    ignorePeriod = 0
+    providers = [
+      "google",
+      "bing"
+    ]
+
+# ========================================
+# EDGE FUNCTIONS (if needed)
+# ========================================
+
+[[edge_functions]]
+  function = "auth"
+  path = "/admin/*"
+
+[[edge_functions]]
+  function = "rate-limit"
+  path = "/api/*"
+
+# ========================================
+# FORMS (if using Netlify Forms)
+# ========================================
+
+[template.environment]
+  CONTACT_FORM_WEBHOOK = "https://hooks.slack.com/your-webhook-url"

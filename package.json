@@ -1,0 +1,52 @@
+{
+  "name": "marketing-services-hub",
+  "version": "1.0.0",
+  "description": "Comprehensive Marketing Services Hub with API integration and payment processing",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "python3 start_unified_app.py --port 8080",
+    "api": "python3 unified_api_server.py --port 8081",
+    "web": "python3 simple_web_server.py",
+    "test": "jest",
+    "lint": "eslint . --ext .js,.html",
+    "lint:fix": "eslint . --ext .js,.html --fix",
+    "security:scan": "npm audit",
+    "deploy:staging": "netlify deploy",
+    "deploy:production": "netlify deploy --prod"
+  },
+  "keywords": [
+    "marketing",
+    "automation",
+    "api",
+    "payments",
+    "affiliate",
+    "dashboard"
+  ],
+  "author": "Marketing Services Hub",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "@netlify/cli": "^17.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/marketing-services-hub.git"
+  },
+  "bugs": {
+    "url": "https://github.com/username/marketing-services-hub/issues"
+  },
+  "homepage": "https://github.com/username/marketing-services-hub#readme"
+}
