@@ -1,0 +1,9 @@
+# Development dependencies for CI/CD pipeline
+pytest>=8.0.0
+ruff>=0.6.0
+mypy>=1.11.0
+black>=24.8.0
+mdformat>=0.7.18
+mdformat-gfm>=0.3.7
+fastapi>=0.104.0
+uvicorn>=0.24.0

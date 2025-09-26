@@ -1,0 +1,27 @@
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+lint.select = ["E", "F", "I", "UP", "B", "W"]
+lint.ignore = ["E203"]  # formatting compat if using black
+lint.fix = true
+exclude = ["_backup", ".mp_fix_backups", "node_modules", "venv", ".venv", "build", "dist"]
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.black]
+line-length = 120
+target-version = ["py313"]
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["backend", "tests"]
