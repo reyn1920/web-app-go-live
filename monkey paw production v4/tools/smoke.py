@@ -84,7 +84,11 @@ def main() -> None:
     try:
         from starlette.testclient import TestClient
 
-        routes = sorted({r.path for r in app.router.routes})
+        if not app:  # Guard for type checker
+            out["error"] = "app is None"
+            print(json.dumps(out, indent=2))
+            sys.exit(2)
+        routes = sorted({r.path for r in app.router.routes})  # type: ignore[attr-defined]
         out["routes"] = routes
         missing = [p for p in ("/health", "/healthz") if p not in routes]
         out["missing_health_routes"] = missing

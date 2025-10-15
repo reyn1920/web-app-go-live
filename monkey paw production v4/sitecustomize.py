@@ -41,7 +41,7 @@ os.environ.setdefault("SELENIUM_REMOTE_DEBUG_ADDR", "127.0.0.1:9222")
 def _stub_redis() -> None:
     """Install a no-op redis stub if redis package is not available."""
     try:
-        import redis  # noqa: F401
+        import redis  # noqa: F401  # type: ignore[import-not-found]
         return
     except ImportError:
         import types
@@ -82,7 +82,7 @@ def _stub_redis() -> None:
 def _stub_psycopg2() -> None:
     """Install a minimal psycopg2 stub if psycopg2 package is not available."""
     try:
-        import psycopg2  # noqa: F401
+        import psycopg2  # noqa: F401  # type: ignore[import-not-found]
         return
     except ImportError:
         import types
