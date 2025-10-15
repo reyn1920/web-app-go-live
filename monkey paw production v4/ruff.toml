@@ -1,0 +1,10 @@
+line-length = 100
+target-version = "py311"
+exclude = [".venv","venv","build","dist","__pycache__"]
+
+[lint]
+select = ["E","F","I","UP","B","W","C90"]
+ignore = [
+  "E501",  # long lines handled case-by-case
+]
+
