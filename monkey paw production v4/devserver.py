@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
 import os
-from typing import Optional
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -19,7 +20,26 @@ _CANDIDATES = [
 ]
 
 
-def _import_app(module_name: str, attr: str) -> Optional[FastAPI]:
+def _import_app_from_file(file_path: str, attr: str) -> FastAPI | None:
+    """Import FastAPI app from a file path (handles paths with spaces)."""
+    path = Path(file_path).expanduser().resolve()
+    if not path.exists():
+        log.warning("MONKEYPAW_APP_FILE not found: %s", path)
+        return None
+    spec = importlib.util.spec_from_file_location("_monkeypaw_app_mod", str(path))
+    if not spec or not spec.loader:
+        log.warning("Cannot load spec for %s", path)
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)  # type: ignore[attr-defined]
+    obj = getattr(mod, attr, None)
+    if isinstance(obj, FastAPI):
+        return obj
+    log.warning("Attr %r on %s is not a FastAPI instance", attr, path)
+    return None
+
+
+def _import_app(module_name: str, attr: str) -> FastAPI | None:
     try:
         mod = importlib.import_module(module_name)
     except (ImportError, AttributeError, TypeError) as e:
@@ -52,6 +72,17 @@ def _pick_app() -> FastAPI:
     """Find an existing app or provide a minimal fallback with health."""
     env_mod = os.environ.get("MONKEYPAW_APP_MODULE")
     env_attr = os.environ.get("MONKEYPAW_APP_ATTR", "app")
+    env_file = os.environ.get("MONKEYPAW_APP_FILE")
+
+    # Highest priority: explicit file path (handles spaces/dashes in folders)
+    if env_file:
+        found = _import_app_from_file(env_file, env_attr)
+        if found:
+            _ensure_health_once(found)
+            log.info("Using app from file: %s (attr=%s)", env_file, env_attr)
+            return found
+        log.warning("File override failed: %s (attr=%s)", env_file, env_attr)
+
     if env_mod:
         found = _import_app(env_mod, env_attr)
         if found:
