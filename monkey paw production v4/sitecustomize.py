@@ -72,6 +72,7 @@ def _stub_redis() -> None:
                 pass
 
         def redis_factory(*_args, **_kwargs) -> _DummyRedis:
+            """Factory function that returns a dummy Redis client instance."""
             return _DummyRedis(*_args, **_kwargs)
 
         stub.Redis = redis_factory  # type: ignore[attr-defined]
@@ -103,6 +104,7 @@ def _stub_psycopg2() -> None:
                 pass
 
         def connect(*_args, **_kwargs) -> _DummyConn:
+            """Factory function that returns a dummy psycopg2 connection."""
             return _DummyConn()
 
         stub.connect = connect  # type: ignore[attr-defined]
