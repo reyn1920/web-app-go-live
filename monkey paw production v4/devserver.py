@@ -54,7 +54,7 @@ def _import_app(module_name: str, attr: str) -> FastAPI | None:
 
 def _ensure_health_once(fastapi_app: FastAPI) -> None:
     """Add /health and /healthz only if not already present."""
-    existing = {route.path for route in fastapi_app.router.routes}
+    existing = {route.path for route in fastapi_app.router.routes}  # type: ignore[attr-defined]
     if "/health" not in existing:
 
         @fastapi_app.get("/health")
