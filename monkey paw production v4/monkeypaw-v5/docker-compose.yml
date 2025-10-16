@@ -1,0 +1,47 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mpaw
+      POSTGRES_PASSWORD: mpaw
+      POSTGRES_DB: mpaw
+    ports: ["5432:5432"]
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+
+  api:
+    build: ./api
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://mpaw:mpaw@db:5432/mpaw
+      JWT_SECRET: devsecret
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      COMMAND_RUNNER_URL: ${COMMAND_RUNNER_URL:-}
+      COMMAND_RUNNER_TOKEN: ${COMMAND_RUNNER_TOKEN:-}
+      PORT: 8080
+    depends_on: [db]
+    ports: ["8080:8080"]
+    command: ["sh", "-c", "npm run migrate && npm run dev"]
+
+  n8n:
+    image: n8nio/n8n:1.64.0
+    ports: ["5678:5678"]
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=mpaw
+      - DB_POSTGRESDB_USER=mpaw
+      - DB_POSTGRESDB_PASSWORD=mpaw
+    depends_on: [db]
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  dbdata:
+  n8n_data:

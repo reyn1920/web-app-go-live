@@ -1,0 +1,32 @@
+{
+  "name": "Breaking News Stub",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [{ "hour": 0, "minute": 0, "second": 0, "weekday": 0 }],
+          "mode": "everyMinute"
+        }
+      },
+      "id": "Cron",
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://api:8080/api/workflows/trigger",
+        "options": {},
+        "sendBody": true
+      },
+      "id": "HTTP",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [600, 300],
+      "credentials": {}
+    }
+  ],
+  "connections": { "Cron": { "main": [[{ "node": "HTTP", "type": "main", "index": 0 }]] } }
+}

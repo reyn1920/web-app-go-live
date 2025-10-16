@@ -1,0 +1,65 @@
+{
+  "channel": {
+    "name": "The Right Perspective",
+    "description": "Professional news analysis and commentary",
+    "branding": {
+      "primary_color": "#1a365d",
+      "secondary_color": "#2d3748",
+      "accent_color": "#3182ce",
+      "logo": "assets/trp_logo.png"
+    },
+    "hosts": {
+      "female": {
+        "name": "Sarah Chen",
+        "title": "Senior Political Analyst",
+        "avatar_path": "~/Downloads/Gemini_Generated_Image_7d45m97d45m97d45.png",
+        "voice_profile": "professional_female",
+        "head_position": {
+          "x": 0,
+          "y": 150,
+          "scale": 1.0
+        }
+      },
+      "male": {
+        "name": "Marcus Johnson", 
+        "title": "Chief News Correspondent",
+        "avatar_path": "~/Downloads/Gemini_Generated_Image_qmi40nqmi40nqmi4.png",
+        "voice_profile": "professional_male",
+        "head_position": {
+          "x": 0,
+          "y": 120,
+          "scale": 1.1
+        }
+      }
+    },
+    "backgrounds": {
+      "studio": "assets/studio_background.jpg",
+      "newsroom": "assets/newsroom_background.jpg",
+      "office": "assets/office_background.jpg"
+    },
+    "content_types": {
+      "breaking_news": {
+        "template": "Breaking news: {topic}. Here's what you need to know...",
+        "background": "newsroom",
+        "host": "female"
+      },
+      "analysis": {
+        "template": "Let's analyze the implications of {topic}...",
+        "background": "studio", 
+        "host": "male"
+      },
+      "commentary": {
+        "template": "From The Right Perspective, here's my take on {topic}...",
+        "background": "office",
+        "host": "female"
+      }
+    },
+    "production": {
+      "resolution": "1920x1080",
+      "frame_rate": 30,
+      "audio_quality": "high",
+      "video_codec": "H264",
+      "output_format": "mp4"
+    }
+  }
+}

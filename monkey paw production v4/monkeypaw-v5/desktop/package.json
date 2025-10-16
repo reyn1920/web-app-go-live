@@ -1,0 +1,38 @@
+{
+  "name": "mpaw-desktop-v5",
+  "version": "5.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && electron-builder",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "electron": "^32.2.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "concurrently": "^9.1.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.11",
+    "vite-plugin-electron": "^0.28.8",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.monkeypaw.v5",
+    "productName": "MonkeyPaw V5",
+    "directories": {
+      "output": "release"
+    }
+  }
+}
+
