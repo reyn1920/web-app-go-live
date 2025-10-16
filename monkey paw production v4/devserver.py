@@ -20,23 +20,29 @@ _CANDIDATES = [
 ]
 
 
-def _import_app_from_file(file_path: str, attr: str) -> FastAPI | None:
-    """Import FastAPI app from a file path (handles paths with spaces)."""
-    path = Path(file_path).expanduser().resolve()
-    if not path.exists():
-        log.warning("MONKEYPAW_APP_FILE not found: %s", path)
-        return None
-    spec = importlib.util.spec_from_file_location("_monkeypaw_app_mod", str(path))
-    if not spec or not spec.loader:
-        log.warning("Cannot load spec for %s", path)
-        return None
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)  # type: ignore[attr-defined]
-    obj = getattr(mod, attr, None)
-    if isinstance(obj, FastAPI):
-        return obj
-    log.warning("Attr %r on %s is not a FastAPI instance", attr, path)
-    return None
+def _ensure_ops_status(fastapi_app: FastAPI) -> None:
+    """Add /_ops/status (non-destructive) so we can quickly verify runtime."""
+    paths = {r.path for r in fastapi_app.router.routes}  # type: ignore[attr-defined]
+    if "/_ops/status" in paths:
+        return
+
+    @fastapi_app.get("/_ops/status")
+    def _ops_status() -> JSONResponse:  # type: ignore[func-returns-value]
+        try:
+            routes = sorted({r.path for r in fastapi_app.router.routes})  # type: ignore[attr-defined]
+            return JSONResponse({
+                "ok": True,
+                "routes": routes,
+                "env": {
+                    "FEATURE_REDIS": os.environ.get("FEATURE_REDIS", "0"),
+                    "FEATURE_PG": os.environ.get("FEATURE_PG", "0"),
+                    "FEATURE_CHATGPT_DESKTOP": os.environ.get(
+                        "FEATURE_CHATGPT_DESKTOP", "1"
+                    ),
+                },
+            })
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
 def _import_app(module_name: str, attr: str) -> FastAPI | None:
@@ -76,17 +82,27 @@ def _pick_app() -> FastAPI:
 
     # Highest priority: explicit file path (handles spaces/dashes in folders)
     if env_file:
-        found = _import_app_from_file(env_file, env_attr)
-        if found:
-            _ensure_health_once(found)
-            log.info("Using app from file: %s (attr=%s)", env_file, env_attr)
-            return found
-        log.warning("File override failed: %s (attr=%s)", env_file, env_attr)
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "_monkeypaw_app_mod", str(Path(env_file).expanduser())
+            )
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)  # type: ignore[attr-defined]
+                obj = getattr(mod, env_attr, None)
+                if isinstance(obj, FastAPI):
+                    _ensure_health_once(obj)
+                    _ensure_ops_status(obj)
+                    log.info("Using app from file: %s (attr=%s)", env_file, env_attr)
+                    return obj
+        except Exception as e:
+            log.error("File override FAILED for %s (attr=%s): %s", env_file, env_attr, e)
 
     if env_mod:
         found = _import_app(env_mod, env_attr)
         if found:
             _ensure_health_once(found)
+            _ensure_ops_status(found)
             log.info("Using app from env: %s:%s", env_mod, env_attr)
             return found
         log.warning("Env override failed to load %s:%s", env_mod, env_attr)
@@ -94,11 +110,13 @@ def _pick_app() -> FastAPI:
         found = _import_app(mod, attr)
         if found:
             _ensure_health_once(found)
+            _ensure_ops_status(found)
             log.info("Using discovered app: %s:%s", mod, attr)
             return found
     log.warning("No FastAPI app found; serving health-only fallback.")
     fallback = FastAPI(title="Monkey Paw (fallback)")
     _ensure_health_once(fallback)
+    _ensure_ops_status(fallback)
     return fallback
 
 
@@ -107,4 +125,15 @@ app: FastAPI = _pick_app()
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("devserver:app", host="127.0.0.1", port=8789, reload=True)
+    # Stop reload flapping on files that churn (sitecustomize/tools/backups).
+    uvicorn.run(
+        "devserver:app",
+        host="127.0.0.1",
+        port=8789,
+        reload=True,
+        reload_excludes=[
+            "sitecustomize.py",
+            "tools/*",
+            ".lint_backups/*",
+        ],
+    )
