@@ -198,7 +198,7 @@ qa-upload:
 e2e: qa-env qa-blender qa-resolve qa-talker qa-avatar qa-blue qa-render qa-upload
 
 # --- OLLAMA MANAGEMENT ---
-.PHONY: ollama-install ollama-start ollama-stop ollama-logs ollama-pull ollama-smoke ollama-json ollama-vision drive-install drive-status drive-config drive-restart drive-logs drive-cache-reset
+.PHONY: ollama-install ollama-start ollama-stop ollama-logs ollama-pull ollama-smoke ollama-json ollama-vision drive-install drive-status drive-config drive-restart drive-logs drive-cache-reset drive-sanity-proof
 
 ollama-install:
 	@brew install ollama || true
@@ -280,6 +280,10 @@ drive-recovery-full:
 drive-cache-reset:
 	@chmod +x tools/gdrive_cache_reset.sh
 	@./tools/gdrive_cache_reset.sh
+
+drive-sanity-proof:
+	@chmod +x tools/gdrive_sanity_proof.py
+	@$(PY) tools/gdrive_sanity_proof.py
 
 gdrive-health:
 	@chmod +x tools/gdrive_health_check.sh
